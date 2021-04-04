@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useApi, useChildList } from '@skolplattformen/api-hooks'
 import { Child } from '@skolplattformen/embedded-api'
 import {
+  Button,
   Divider,
   Layout,
   List,
@@ -11,7 +12,13 @@ import {
   TopNavigationAction,
 } from '@ui-kitten/components'
 import React from 'react'
-import { Image, ListRenderItemInfo, StyleSheet, View } from 'react-native'
+import {
+  Image,
+  ListRenderItemInfo,
+  StyleSheet,
+  View,
+  Linking,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ActionSheet from 'rn-actionsheet-module'
 import { Colors, Layout as LayoutStyle, Sizing, Typography } from '../styles'
@@ -23,7 +30,7 @@ const settingsOptions = ['Logga ut', 'Avbryt']
 
 export const Children = () => {
   const { api } = useApi()
-  const { data: childList, status } = useChildList()
+  const { data: childList, status, reload } = useChildList()
   const insets = useSafeAreaInsets()
 
   const handleSettingSelection = (index: number) => {
@@ -44,6 +51,14 @@ export const Children = () => {
     }
 
     ActionSheet(options, handleSettingSelection)
+  }
+
+  const reloadChildren = () => {
+    reload()
+  }
+
+  const logoutAndTryAgain = () => {
+    api.logout()
   }
 
   // We need to skip safe area view here, due to the reason that it's adding a white border
@@ -101,12 +116,36 @@ export const Children = () => {
               source={require('../assets/girls.png')}
               style={styles.loadingImage}
             />
-            <View style={styles.loadingMessage}>
-              <Spinner size="large" status="warning" />
-              <Text category="h1" style={styles.loadingText}>
-                Laddar...
-              </Text>
-            </View>
+            {status === 'error' ? (
+              <View style={styles.errorMessage}>
+                <Text category="h5">Hoppsan!</Text>
+                <Text style={{ fontSize: Sizing.t5 }}>
+                  Vi lyckades inte ladda sidan. Försök igen eller se status på
+                  skolplattformen.org.
+                </Text>
+                <View style={styles.errorButtons}>
+                  <Button status="success" onPress={() => reloadChildren()}>
+                    Försök igen
+                  </Button>
+                  <Button
+                    status="basic"
+                    onPress={() =>
+                      Linking.openURL('https://skolplattformen.org/status')
+                    }
+                  >
+                    Se status på skolplattformen.org
+                  </Button>
+                  <Button onPress={() => logoutAndTryAgain()}>Logga ut</Button>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.loadingMessage}>
+                <Spinner size="large" status="warning" />
+                <Text category="h1" style={styles.loadingText}>
+                  Laddar...
+                </Text>
+              </View>
+            )}
           </Layout>
         )}
       </>
@@ -134,6 +173,21 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginLeft: Sizing.t5,
+  },
+  errorButtons: {
+    height: Sizing.screen.height * 0.2,
+    width: Sizing.screen.width * 0.73,
+    justifyContent: 'space-evenly',
+  },
+  errorMessage: {
+    height: Sizing.screen.height * 0.4,
+    width: Sizing.screen.width * 0.73,
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
+    marginTop: Sizing.t2,
+  },
+  errorText: {
+    marginBottom: Sizing.t3,
   },
   childList: {
     ...LayoutStyle.flex.full,
